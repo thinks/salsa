@@ -12,6 +12,7 @@
 *.ncb 
 *.opensdf
 *.sdf
+*.filters
 ipch/
 x64/
 [Dd]ebug*/
