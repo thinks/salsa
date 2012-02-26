@@ -41,8 +41,12 @@ public:
     void
     clear(const P &val = P())
     {
-        _pixels.clear();
-        _pixels.resize(width*height, val);
+        int i;
+        const int n = static_cast<int>(_pixels.size());
+#pragma omp parallel for
+        for (i = 0; i < n; ++i) {
+            _pixels[i] = val;
+        }
     }
 
     std::size_t            
