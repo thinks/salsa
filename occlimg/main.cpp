@@ -165,11 +165,12 @@ saveImage(const image  &img,
           const string &fileName,
           const string &suffix, 
           const int     frame,
+          const double  wdx,
           const string &ext = "png")
 {
     stringstream ss;
     ss << fileName << (suffix.empty() ? "" : "_") << suffix 
-       << frame << "." << ext;
+       << frame << "_" << fixed << setprecision(2) << wdx << "m" <<"." << ext;
     saveImage(img, ss.str());
 }
 
@@ -179,11 +180,12 @@ saveImage(const imagef &imgf,
           const string &fileName,
           const string &suffix, 
           const int     frame,
+          const double  wdx,
           const string &ext = "png")
 {
     stringstream ss;
     ss << fileName << (suffix.empty() ? "" : "_") << suffix 
-       << frame << "." << ext;
+       << frame << "_" << fixed << setprecision(2) << wdx << "m" <<"." << ext;
     saveImage(imgf, ss.str());
 }
 
@@ -270,7 +272,7 @@ addScanLineVisibility(vector<las::point> &ft,
                 i1 = i0;
             }
         }
-        saveImage(vaccum.image(), "occlusion", "sl", fts);
+        saveImage(vaccum.image(), "occlusion", "sl", vaccum.wdx(), fts);
     }
 }
 
@@ -297,88 +299,14 @@ addSegmentVisibility(vector<las::point> &ft,
             }
             else {
                 addVisibility(ft, i0, i1, vbuf, ftsAccum);
-                saveImage(ftsAccum.image(), "occlusion", "fts", fts);
+                saveImage(ftsAccum.image(), "occlusion", "fts", fts, ftsAccum.wdx());
 
-                addScanLineVisibility(ft, i0, i1, fts, vbuf, slAccum);
+                //addScanLineVisibility(ft, i0, i1, fts, vbuf, slAccum);
 
                 t0 = t;
                 i0 = i + 1;
                 i1 = i0;
                 ++fts;
-            }
-        }
-    }
-}
-
-
-
-
-
-void
-trackToSegments(vector<las::point>          &ft, 
-                vector<vector<las::point> > &fts,
-                const size_t                 scanRate,
-                const size_t                 pulseRate,
-                const size_t                 numEchoes)
-{
-    if (!ft.empty()) {
-        sort(ft.begin(), ft.end());
-        fts.push_back(vector<las::point>(1, ft[0]));
-        fts.back().reserve(scanRate*pulseRate*numEchoes);
-        const size_t size = ft.size();
-        for (size_t i = 0; i < size; ++i) {
-            if (floor(ft[i].gps_time) == floor(fts.back().back().gps_time)) {
-                fts.back().push_back(ft[i]);
-            }
-            else {
-                fts.push_back(vector<las::point>(1, ft[i]));
-                fts.back().reserve(scanRate*pulseRate*numEchoes);
-            }
-        }
-    }
-}
-
-void
-trackToScanLines(vector<las::point>          &ft, 
-                 vector<vector<las::point> > &sl,
-                 const size_t                 pulseRate,
-                 const size_t                 numEchoes)
-{
-    if (!ft.empty()) {
-        sort(ft.begin(), ft.end());
-        sl.push_back(vector<las::point>(1, ft[0]));
-        sl.back().reserve(pulseRate*numEchoes);
-        const size_t ftSize = ft.size();
-        for (size_t i = 0; i < ftSize; ++i) {
-            if (ft[i].gps_time == sl.back().back().gps_time) {
-                sl.back().push_back(ft[i]);
-            }
-            else {
-                sl.push_back(vector<las::point>(1, ft[i]));
-                sl.back().reserve(pulseRate*numEchoes);
-            }
-        }
-    }
-}
-
-void
-segmentToScanLines(vector<las::point>          &fts, 
-                   vector<vector<las::point> > &sl,
-                   const size_t                 pulseRate,
-                   const size_t                 numEchoes)
-{
-    if (!fts.empty()) {
-        sort(fts.begin(), fts.end());
-        sl.push_back(vector<las::point>(1, fts[0]));
-        sl.back().reserve(pulseRate*numEchoes);
-        const size_t ftsSize = fts.size();
-        for (size_t i = 0; i < ftsSize; ++i) {
-            if (fts[i].gps_time == sl.back().back().gps_time) {
-                sl.back().push_back(fts[i]);
-            }
-            else {
-                sl.push_back(vector<las::point>(1, fts[i]));
-                sl.back().reserve(pulseRate*numEchoes);
             }
         }
     }
@@ -398,8 +326,8 @@ main(int argc, char *argv[])
         const size_t scanRate = 150;
         const size_t pulseRate = 1000;
         const size_t numEchoes = 5;
-        const double wdx = 0.5;
-        const double wdy = 0.5;
+        const double wdx = 0.2;
+        const double wdy = 0.2;
 
         const double programStart = omp_get_wtime();
         cout << fixed << setprecision(3);
@@ -442,10 +370,10 @@ main(int argc, char *argv[])
             las10::read::points(ftFileNames[ft], ftPoints);
 
             addElevation(ftPoints, wzmin, wzmax, ftElevation);
-            saveImage(ftElevation.image(), "elevation", "ft", ft);
+            saveImage(ftElevation.image(), "elevation", "ft", ft, wdx);
 
             addVisibility(ftPoints, 0, ftPoints.size(), vbuf, ftVisAccum);
-            saveImage(ftVisAccum.image(), "occlusion", "ft", ft);
+            saveImage(ftVisAccum.image(), "occlusion", "ft", ft, wdx);
 
             addSegmentVisibility(ftPoints, ftsIndex, vbuf, ftsVisAccum, slVisAccum);
             //saveImage(ftsVisAccum.image(), "occlusion", "fts", ftsIndex);
